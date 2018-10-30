@@ -1,0 +1,84 @@
+#!/usr/bin/env python
+from selenium import webdriver
+import xlrd
+from selenium.webdriver.firefox.firefox_binary import FirefoxBinary
+from selenium.webdriver.common.by import By
+import xlsxwriter
+import datetime
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+#Variable declaration
+row_w=1
+col_w=0
+pathtxt ='https://'
+#List of errors
+Error_type = ['401','400','403','404','408','410','500','502','503','504','Not Found','cannot','Error','found', 'Problem','issue']
+#Get the current date & Time
+Fileoutput = str('GetMissingImgAltText_')+datetime.datetime.now().strftime("%Y%m%d-%H%M%S")+str('.xlsx')
+#Read the input data from file
+workbook = xlrd.open_workbook(r'C:\Users\_\AppData\Local\Programs\Python\Python35-32\MyScripts\Url2.xlsx')
+worksheet = workbook.sheet_by_name('Sheet1')
+#Write output to the file
+workbook2 = xlsxwriter.Workbook(Fileoutput)
+worksheet2 = workbook2.add_worksheet('PageLoadTime')
+#formatting Excel output
+bold = workbook2.add_format({'bold': 1})
+color_red = workbook2.add_format({'bold': 1,'font_color': 'red'})
+color_green = workbook2.add_format({'bold': 1,'font_color': 'green'})
+worksheet2.set_column(0,0,80)
+worksheet2.set_column(1,1,21)
+worksheet2.write(0, 0, 'URLs',bold)
+worksheet2.write(0, 1, 'Result',bold)
+worksheet2.write(0, 2, 'Status',bold)
+
+#Logic to read the data from file
+for current_row in range(worksheet.nrows):
+    source = worksheet.row_values(current_row)[0]
+    if (pathtxt in source):            
+        firefox_capabilities = DesiredCapabilities.FIREFOX
+        firefox_capabilities['marionette'] = True
+        ffProfilePath = 'C:\myff'
+        profile = webdriver.FirefoxProfile(profile_directory=ffProfilePath)
+        geckoPath = r'C:\Users\_\AppData\Local\Programs\geckodriver\geckodriver.exe'
+        binary = FirefoxBinary(r'C:\Program Files (x86)\Mozilla Firefox\firefox.exe')
+        browser = webdriver.Firefox(firefox_binary=binary, firefox_profile=profile, capabilities=firefox_capabilities, executable_path=geckoPath)
+        browser.get(source)
+        username = browser.find_element_by_id("username")
+        password = browser.find_element_by_id("password")
+        username.send_keys("")
+        password.send_keys("")
+        login_attempt = browser.find_element_by_tag_name("button")
+        login_attempt.click()
+        worksheet2.write(row_w, col_w, 'For page', bold)
+        worksheet2.write(row_w, col_w + 1, source, bold)
+        row_w += 1
+            #-------alt text image logic----------------------------
+        imgs = [x for x in browser.find_elements_by_tag_name('img')]
+        for ii in imgs:
+            if ii.get_attribute("alt") == '' and ii.get_attribute("src") != '':
+                worksheet2.write(row_w, col_w, ii.get_attribute("src"))
+                worksheet2.write(row_w, col_w + 1, 'Alt Text Missing')
+                row_w += 1
+            elif ii.get_attribute("alt") == '' and ii.get_attribute("srcset") !='':
+                worksheet2.write(row_w, col_w, ii.get_attribute("src"))
+                worksheet2.write(row_w, col_w + 1, 'Alt Text Missing')
+                row_w += 1
+    else:
+        binary = FirefoxBinary(r'C:\Program Files (x86)\Mozilla Firefox\firefox.exe')
+        browser = webdriver.Firefox(firefox_binary=binary)
+        browser.get(source)
+        worksheet2.write(row_w, col_w, 'For page', bold)
+        worksheet2.write(row_w, col_w + 1, source, bold)
+        row_w += 1
+            #-------alt text image logic----------------------------
+        imgs = [x for x in browser.find_elements_by_tag_name('img')]
+        for ii in imgs:
+            if ii.get_attribute("alt") == '' and ii.get_attribute("src") != '':
+                worksheet2.write(row_w, col_w, ii.get_attribute("src"))
+                worksheet2.write(row_w, col_w + 1, 'Alt Text Missing')
+                row_w += 1
+            elif ii.get_attribute("alt") == '' and ii.get_attribute("srcset") !='':
+                worksheet2.write(row_w, col_w, ii.get_attribute("src"))
+                worksheet2.write(row_w, col_w + 1, 'Alt Text Missing')
+                row_w += 1           
+    browser.quit()    
+workbook2.close()
